@@ -19,7 +19,10 @@ app = FastAPI(title="DataSentry API", version="1.0.0", description="Enterprise C
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # Tighten in production to your Vercel URL
+    allow_origins=[
+        "http://localhost:5173",
+        "https://datasentry.vercel.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
