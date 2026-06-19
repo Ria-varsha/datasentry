@@ -33,17 +33,13 @@ app.add_middleware(
 # ---------------------------------------------------------------------------
 
 PHONE_RULES: dict[str, dict] = {
-    "SG": {
-        "pattern": re.compile(r"^[89]\d{7}$"),
-        "description": "8 digits starting with 8 or 9",
-    },
     "IN": {
         "pattern": re.compile(r"^\d{10}$"),
         "description": "exactly 10 digits",
     },
 }
 
-REQUIRED_FIELDS = ["order_id", "product_id", "payment_mode"]
+REQUIRED_FIELDS = ["customer_id", "full_name", "city"]
 
 # ---------------------------------------------------------------------------
 # In-memory storage for the latest processed files
@@ -59,50 +55,41 @@ _store: dict = {
 # ---------------------------------------------------------------------------
 
 
-def validate_phone(country_code: Optional[str], phone: Optional[str]) -> list[str]:
+def validate_phone(phone: Optional[str]) -> list[str]:
     """Return a list of error strings; empty list means valid."""
     errors: list[str] = []
 
-    if not country_code or pd.isna(country_code):
-        errors.append("Missing country_code")
-        return errors
-
-    country_code = str(country_code).strip().upper()
-    rule = PHONE_RULES.get(country_code)
-
-    if rule is None:
-        errors.append(f"Unsupported country_code: {country_code}")
-        return errors
-
     if not phone or pd.isna(phone):
-        errors.append(f"Missing phone for country {country_code}")
+        errors.append("Missing phone_number")
         return errors
 
     phone_str = str(phone).strip()
+    rule = PHONE_RULES["IN"]
+
     if not rule["pattern"].match(phone_str):
         errors.append(
-            f"Invalid phone for {country_code} (expected {rule['description']}): got '{phone_str}'"
+            f"Invalid phone (expected {rule['description']}): got '{phone_str}'"
         )
 
     return errors
 
 
-def validate_date(transaction_date: Optional[str]) -> list[str]:
-    """Validate YYYY-MM-DD format strictly."""
+def validate_date(signup_date: Optional[str]) -> list[str]:
+    """Validate DD-MM-YYYY format strictly."""
     errors: list[str] = []
 
-    if not transaction_date or pd.isna(transaction_date):
-        errors.append("Missing transaction_date")
+    if not signup_date or pd.isna(signup_date):
+        errors.append("Missing signup_date")
         return errors
 
-    date_str = str(transaction_date).strip()
+    date_str = str(signup_date).strip()
     try:
-        parsed = pd.to_datetime(date_str, format="%Y-%m-%d", errors="raise")
-        # Extra guard: ensure the string representation is exactly YYYY-MM-DD
-        if parsed.strftime("%Y-%m-%d") != date_str:
+        parsed = pd.to_datetime(date_str, format="%d-%m-%Y", errors="raise")
+        # Extra guard: ensure the string representation is exactly DD-MM-YYYY
+        if parsed.strftime("%d-%m-%Y") != date_str:
             raise ValueError("Format mismatch")
     except (ValueError, Exception):
-        errors.append(f"Invalid transaction_date format (expected YYYY-MM-DD): got '{date_str}'")
+        errors.append(f"Invalid signup_date format (expected DD-MM-YYYY): got '{date_str}'")
 
     return errors
 
@@ -160,14 +147,11 @@ async def upload_csv(file: UploadFile = File(...)):
 
         # Phone
         row_errors.extend(
-            validate_phone(
-                row.get("country_code"),
-                row.get("phone"),
-            )
+            validate_phone(row.get("phone_number"))
         )
 
         # Date
-        row_errors.extend(validate_date(row.get("transaction_date")))
+        row_errors.extend(validate_date(row.get("signup_date")))
 
         # Required fields
         row_errors.extend(validate_required_fields(row))
@@ -276,9 +260,9 @@ async def root():
 def _categorise_error(error_msg: str) -> str:
     """Map raw error strings to stable category keys for the summary dict."""
     msg = error_msg.lower()
-    if "phone" in msg or "country_code" in msg:
-        return "Phone / Country Code"
-    if "transaction_date" in msg or "date" in msg:
+    if "phone" in msg:
+        return "Invalid Phone Number"
+    if "signup_date" in msg or "date" in msg:
         return "Invalid Date Format"
     if "missing required field" in msg:
         # Extract the field name

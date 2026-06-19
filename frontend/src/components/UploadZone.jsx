@@ -20,9 +20,9 @@ function useRipple(ref) {
 
 /* ── Pipeline steps shown during processing ───────────────────────────────── */
 const STEPS = [
-  { id: 'parse',  label: 'Parsing CSV structure' },
-  { id: 'phone',  label: 'Validating phone formats (SG / IN)' },
-  { id: 'date',   label: 'Checking date integrity (YYYY-MM-DD)' },
+  { id: 'parse',  label: 'Parsing file structure' },
+  { id: 'phone',  label: 'Validating phone formats (10 digits)' },
+  { id: 'date',   label: 'Checking date integrity (DD-MM-YYYY)' },
   { id: 'fields', label: 'Enforcing required fields' },
   { id: 'route',  label: 'Routing clean & quarantine streams' },
   { id: 'chunk',  label: 'Chunking & bundling ZIP archive' },
@@ -374,12 +374,12 @@ export default function UploadZone({ onUpload, isUploading, errorMsg, onRetry })
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-2">
             {[
-              { col: 'order_id',         note: 'required' },
-              { col: 'product_id',       note: 'required' },
-              { col: 'payment_mode',     note: 'required' },
-              { col: 'phone',            note: 'SG / IN regex' },
-              { col: 'country_code',     note: 'SG or IN' },
-              { col: 'transaction_date', note: 'YYYY-MM-DD' },
+              { col: 'customer_id',      note: 'required' },
+              { col: 'full_name',        note: 'required' },
+              { col: 'city',             note: 'required' },
+              { col: 'email',            note: 'optional' },
+              { col: 'phone_number',     note: '10 digits' },
+              { col: 'signup_date',      note: 'DD-MM-YYYY' },
             ].map(({ col, note }) => (
               <div key={col} className="flex items-center gap-1.5">
                 <span className="col-chip">{col}</span>
