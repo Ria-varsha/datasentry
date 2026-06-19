@@ -119,7 +119,7 @@ def validate_full_name(val: Optional[str]) -> list[str]:
 
 def validate_email(val: Optional[str]) -> list[str]:
     if not val or pd.isna(val) or str(val).strip() == "":
-        return [] # optional field based on requirements
+        return ["Missing required field: email"]
     val_str = str(val).strip()
     if not re.match(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$", val_str):
         return [f"Invalid email format: got '{val_str}'"]

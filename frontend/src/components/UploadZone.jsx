@@ -377,7 +377,7 @@ export default function UploadZone({ onUpload, isUploading, errorMsg, onRetry })
               { col: 'customer_id',      note: 'required' },
               { col: 'full_name',        note: 'required' },
               { col: 'city',             note: 'required' },
-              { col: 'email',            note: 'optional' },
+              { col: 'email',            note: 'required' },
               { col: 'phone_number',     note: '10 digits' },
               { col: 'signup_date',      note: 'DD-MM-YYYY' },
             ].map(({ col, note }) => (
