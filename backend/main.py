@@ -39,7 +39,7 @@ PHONE_RULES: dict[str, dict] = {
     },
 }
 
-REQUIRED_FIELDS = ["customer_id", "full_name", "city"]
+# Custom strict field validation logic implemented directly via regex instead of a simple required list
 
 # ---------------------------------------------------------------------------
 # In-memory storage for the latest processed files
@@ -94,16 +94,45 @@ def validate_date(signup_date: Optional[str]) -> list[str]:
     return errors
 
 
-def validate_required_fields(row: pd.Series) -> list[str]:
-    """Check that required fields are not empty or null."""
-    errors: list[str] = []
+def validate_customer_id(val: Optional[str]) -> list[str]:
+    if not val or pd.isna(val) or str(val).strip() == "":
+        return ["Missing required field: customer_id"]
+    val_str = str(val).strip()
+    # Optional trailing .0 from pandas reading numbers
+    if val_str.endswith(".0"):
+        val_str = val_str[:-2]
+    if not re.match(r"^\d+$", val_str):
+        return [f"Invalid customer_id (expected numbers only): got '{val_str}'"]
+    if len(val_str) != 6:
+        return [f"Invalid customer_id (expected exactly 6 digits): got {len(val_str)} digits"]
+    return []
 
-    for field in REQUIRED_FIELDS:
-        value = row.get(field, None)
-        if value is None or pd.isna(value) or str(value).strip() == "":
-            errors.append(f"Missing required field: {field}")
 
-    return errors
+def validate_full_name(val: Optional[str]) -> list[str]:
+    if not val or pd.isna(val) or str(val).strip() == "":
+        return ["Missing required field: full_name"]
+    val_str = str(val).strip()
+    if not re.match(r"^[A-Za-z\s]+$", val_str):
+        return [f"Invalid full_name (expected alphabets only): got '{val_str}'"]
+    return []
+
+
+def validate_email(val: Optional[str]) -> list[str]:
+    if not val or pd.isna(val) or str(val).strip() == "":
+        return [] # optional field based on requirements
+    val_str = str(val).strip()
+    if not re.match(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$", val_str):
+        return [f"Invalid email format: got '{val_str}'"]
+    return []
+
+
+def validate_city(val: Optional[str]) -> list[str]:
+    if not val or pd.isna(val) or str(val).strip() == "":
+        return ["Missing required field: city"]
+    val_str = str(val).strip()
+    if not re.match(r"^[A-Za-z\s]+$", val_str):
+        return [f"Invalid city (expected alphabets only): got '{val_str}'"]
+    return []
 
 
 # ---------------------------------------------------------------------------
@@ -153,8 +182,10 @@ async def upload_csv(file: UploadFile = File(...)):
         # Date
         row_errors.extend(validate_date(row.get("signup_date")))
 
-        # Required fields
-        row_errors.extend(validate_required_fields(row))
+        row_errors.extend(validate_customer_id(row.get("customer_id")))
+        row_errors.extend(validate_full_name(row.get("full_name")))
+        row_errors.extend(validate_email(row.get("email")))
+        row_errors.extend(validate_city(row.get("city")))
 
         if row_errors:
             record = row.to_dict()
@@ -264,6 +295,14 @@ def _categorise_error(error_msg: str) -> str:
         return "Invalid Phone Number"
     if "signup_date" in msg or "date" in msg:
         return "Invalid Date Format"
+    if "customer_id" in msg:
+        return "Invalid Customer ID"
+    if "full_name" in msg:
+        return "Invalid Full Name"
+    if "email" in msg:
+        return "Invalid Email Format"
+    if "city" in msg:
+        return "Invalid City Name"
     if "missing required field" in msg:
         # Extract the field name
         parts = error_msg.split(":")
