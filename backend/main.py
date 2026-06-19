@@ -75,21 +75,19 @@ def validate_phone(phone: Optional[str]) -> list[str]:
 
 
 def validate_date(signup_date: Optional[str]) -> list[str]:
-    """Validate DD-MM-YYYY format strictly."""
+    """Validate date format flexibly (Excel converts DD-MM-YYYY to YYYY-MM-DD internally)."""
     errors: list[str] = []
 
-    if not signup_date or pd.isna(signup_date):
+    if not signup_date or pd.isna(signup_date) or str(signup_date).strip() == "":
         errors.append("Missing signup_date")
         return errors
 
     date_str = str(signup_date).strip()
     try:
-        parsed = pd.to_datetime(date_str, format="%d-%m-%Y", errors="raise")
-        # Extra guard: ensure the string representation is exactly DD-MM-YYYY
-        if parsed.strftime("%d-%m-%Y") != date_str:
-            raise ValueError("Format mismatch")
+        # Try parsing it; this handles both DD-MM-YYYY strings and Excel's YYYY-MM-DD HH:MM:SS format
+        pd.to_datetime(date_str, errors="raise")
     except (ValueError, Exception):
-        errors.append(f"Invalid signup_date format (expected DD-MM-YYYY): got '{date_str}'")
+        errors.append(f"Invalid signup_date format: got '{date_str}'")
 
     return errors
 
