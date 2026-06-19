@@ -127,14 +127,20 @@ def validate_required_fields(row: pd.Series) -> list[str]:
 @app.post("/api/upload")
 async def upload_csv(file: UploadFile = File(...)):
     # ── 1. Read & parse ──────────────────────────────────────────────────────
-    if not file.filename.endswith(".csv"):
-        raise HTTPException(status_code=400, detail="Only CSV files are accepted.")
+    is_csv = file.filename.lower().endswith(".csv")
+    is_excel = file.filename.lower().endswith((".xlsx", ".xls"))
+    
+    if not (is_csv or is_excel):
+        raise HTTPException(status_code=400, detail="Only CSV or Excel (.xlsx, .xls) files are accepted.")
 
     contents = await file.read()
     try:
-        df = pd.read_csv(io.BytesIO(contents), dtype=str, keep_default_na=False)
+        if is_csv:
+            df = pd.read_csv(io.BytesIO(contents), dtype=str, keep_default_na=False)
+        else:
+            df = pd.read_excel(io.BytesIO(contents), dtype=str, keep_default_na=False)
     except Exception as exc:
-        raise HTTPException(status_code=422, detail=f"Failed to parse CSV: {exc}")
+        raise HTTPException(status_code=422, detail=f"Failed to parse file: {exc}")
 
     # Normalise column names: strip whitespace
     df.columns = [c.strip() for c in df.columns]

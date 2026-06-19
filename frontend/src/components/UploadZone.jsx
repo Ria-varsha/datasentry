@@ -167,7 +167,11 @@ export default function UploadZone({ onUpload, isUploading, errorMsg, onRetry })
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
-    accept: { 'text/csv': ['.csv'] },
+    accept: { 
+      'text/csv': ['.csv'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'application/vnd.ms-excel': ['.xls']
+    },
     multiple: false,
     disabled: isUploading,
     noClick: true,
@@ -293,7 +297,7 @@ export default function UploadZone({ onUpload, isUploading, errorMsg, onRetry })
         <p className="text-slate-400 text-sm mb-8 leading-relaxed">
           {isDragActive
             ? 'DataSentry will validate immediately'
-            : 'Drag & drop a .csv file, or click below to browse'}
+            : 'Drag & drop a .csv or .xlsx file, or click below to browse'}
         </p>
 
         {/* Browse button */}
@@ -312,7 +316,7 @@ export default function UploadZone({ onUpload, isUploading, errorMsg, onRetry })
         </button>
 
         <p className="text-xs text-slate-300 mt-5">
-          Only <span className="font-mono text-slate-400">.csv</span> files · No size limit
+          Only <span className="font-mono text-slate-400">.csv / .xlsx</span> files · No size limit
         </p>
 
         {/* Status dot */}
