@@ -65,7 +65,7 @@ body {
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  background: linear-gradient(160deg, #05091f 0%, #080d1e 40%, #060a18 70%, #080c1c 100%);
+  @apply bg-slate-100 dark:bg-[#080d1e] transition-colors duration-500 ease-in-out;
 }
 
 .bg-blob-1 {
@@ -178,32 +178,21 @@ body {
    HEADER
    ══════════════════════════════════════════════════════════════════════════ */
 .header-glass {
-  background: rgba(8,13,30,0.85);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border-bottom: 1px solid rgba(99,102,241,0.15);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.04), 0 4px 20px rgba(0,0,0,0.4);
+  @apply bg-white/80 dark:bg-[#080d1e]/85 backdrop-blur-xl border-b border-slate-200 dark:border-indigo-500/15 transition-colors duration-500 ease-in-out;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
    DROP ZONE
    ══════════════════════════════════════════════════════════════════════════ */
 .dropzone-idle {
-  border: 2px dashed rgba(99,102,241,0.25);
-  background: rgba(255,255,255,0.02);
-  backdrop-filter: blur(16px);
-  transition: all 0.35s cubic-bezier(0.4,0,0.2,1);
+  @apply border-2 border-dashed border-indigo-500/25 bg-slate-900/5 dark:bg-white/5 backdrop-blur-md transition-all duration-300;
 }
 .dropzone-idle:hover {
-  border-color: rgba(99,102,241,0.5);
-  background: rgba(99,102,241,0.04);
-  box-shadow: 0 0 0 6px rgba(99,102,241,0.06), 0 12px 40px rgba(0,0,0,0.4);
+  @apply border-indigo-500/50 bg-indigo-500/10 shadow-[0_0_0_6px_rgba(99,102,241,0.06),_0_12px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_0_0_6px_rgba(99,102,241,0.06),_0_12px_40px_rgba(0,0,0,0.4)];
 }
 .dropzone-active {
-  border: 2px dashed #6366f1 !important;
-  background: rgba(99,102,241,0.08) !important;
-  box-shadow: 0 0 0 10px rgba(99,102,241,0.08), 0 24px 64px rgba(99,102,241,0.2) !important;
-  transform: scale(1.012) !important;
+  @apply border-indigo-500 bg-indigo-500/10 shadow-[0_0_0_10px_rgba(99,102,241,0.08),_0_24px_64px_rgba(99,102,241,0.2)] scale-[1.012] !important;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -297,18 +286,10 @@ body {
 
 /* Ghost */
 .btn-ghost {
-  background: rgba(255,255,255,0.05);
-  color: var(--text-2);
-  border: 1px solid rgba(99,102,241,0.2) !important;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-  backdrop-filter: blur(8px);
+  @apply bg-slate-900/5 dark:bg-white/5 text-slate-700 dark:text-slate-400 border border-slate-900/10 dark:border-indigo-500/20 shadow-sm backdrop-blur-md transition-all;
 }
 .btn-ghost:hover:not(:disabled) {
-  background: rgba(99,102,241,0.1);
-  border-color: rgba(99,102,241,0.4) !important;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 14px rgba(0,0,0,0.35), 0 0 0 3px rgba(99,102,241,0.1);
-  color: var(--indigo-l);
+  @apply bg-indigo-500/10 border-indigo-500/30 dark:border-indigo-500/40 text-indigo-600 dark:text-indigo-400 shadow-md transform -translate-y-px;
 }
 .btn-ghost:active:not(:disabled) { transform: translateY(0); transition-duration: 0.08s; }
 
@@ -321,11 +302,11 @@ body {
   font-size: 11.5px; font-weight: 600; letter-spacing: 0.01em;
   line-height: 1.5;
 }
-.badge-brand   { background: rgba(99,102,241,0.15);  color: #a5b4fc; border: 1px solid rgba(99,102,241,0.25); }
-.badge-emerald { background: rgba(16,185,129,0.12);  color: #34d399; border: 1px solid rgba(16,185,129,0.25); }
-.badge-amber   { background: rgba(245,158,11,0.12);  color: #fbbf24; border: 1px solid rgba(245,158,11,0.25); }
-.badge-red     { background: rgba(239,68,68,0.12);   color: #fca5a5; border: 1px solid rgba(239,68,68,0.25); }
-.badge-slate   { background: rgba(255,255,255,0.06); color: #94a3b8; border: 1px solid rgba(255,255,255,0.1); }
+.badge-brand   { @apply bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border border-indigo-500/20; }
+.badge-emerald { @apply bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20; }
+.badge-amber   { @apply bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20; }
+.badge-red     { @apply bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20; }
+.badge-slate   { @apply bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20; }
 
 /* ══════════════════════════════════════════════════════════════════════════
    METRIC CARD
@@ -342,11 +323,10 @@ body {
     transform 0.32s cubic-bezier(0.4,0,0.2,1),
     box-shadow 0.32s cubic-bezier(0.4,0,0.2,1),
     border-color 0.3s ease;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+  @apply shadow-sm hover:shadow-lg dark:shadow-[0_2px_12px_rgba(0,0,0,0.4)] dark:hover:shadow-[0_12px_40px_rgba(0,0,0,0.5)];
 }
 .metric-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(99,102,241,0.2);
 }
 .metric-value {
   font-variant-numeric: tabular-nums;
@@ -358,7 +338,7 @@ body {
    ══════════════════════════════════════════════════════════════════════════ */
 .quality-ring-track {
   fill: none;
-  stroke: rgba(255,255,255,0.06);
+  @apply stroke-slate-200 dark:stroke-white/5 transition-colors;
   stroke-linecap: round;
 }
 .quality-ring-fill {
@@ -376,8 +356,8 @@ body {
   width: 100%;
   height: 6px;
   border-radius: 99px;
-  background: rgba(255,255,255,0.06);
   overflow: hidden;
+  @apply bg-slate-200 dark:bg-white/10 transition-colors;
 }
 .column-bar-fill {
   height: 100%;
@@ -425,7 +405,7 @@ body {
   animation: step-pulse 1.8s ease-in-out infinite;
 }
 .step-dot-done { background: var(--emerald); }
-.step-dot-idle { background: rgba(255,255,255,0.12); }
+.step-dot-idle { @apply bg-slate-300 dark:bg-white/10; }
 
 @keyframes step-pulse {
   0%,100% { box-shadow: 0 0 0 3px rgba(99,102,241,0.25); }
@@ -466,21 +446,10 @@ body {
    PROFILE CHIP & RULE TAG
    ══════════════════════════════════════════════════════════════════════════ */
 .profile-chip {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 12px;
-  background: rgba(99,102,241,0.08);
-  border: 1px solid rgba(99,102,241,0.2);
-  border-radius: 10px;
-  font-size: 13px; color: #a5b4fc;
+  @apply inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/5 dark:bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-[13px] text-indigo-600 dark:text-indigo-300;
 }
 .rule-tag {
-  display: inline-block;
-  padding: 2px 8px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 6px;
-  font-size: 11px; color: var(--text-2);
-  font-family: 'JetBrains Mono', monospace;
+  @apply inline-block px-2 py-0.5 bg-slate-900/5 dark:bg-white/5 border border-slate-900/10 dark:border-white/10 rounded-md text-[11px] text-slate-600 dark:text-slate-400 font-mono;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -516,16 +485,10 @@ body {
    UTILITY
    ══════════════════════════════════════════════════════════════════════════ */
 .col-chip {
-  display: inline-flex; align-items: center;
-  padding: 3px 9px;
-  background: rgba(99,102,241,0.1);
-  color: #a5b4fc;
-  border: 1px solid rgba(99,102,241,0.2);
-  border-radius: 6px;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px; font-weight: 500;
+  @apply inline-flex items-center px-2 py-0.5 bg-indigo-500/10 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 border border-indigo-500/20 rounded-md font-mono text-[11px] font-medium;
 }
 .stat-label {
   font-size: 11px; font-weight: 700;
-  letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-3);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  @apply text-slate-500 dark:text-slate-400 transition-colors;
 }
