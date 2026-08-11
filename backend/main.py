@@ -43,7 +43,9 @@ app.add_middleware(
         "https://datasentry.vercel.app",
         "https://frontend-blue-nine-82.vercel.app",
         "https://frontend-9vzgsyrbb-ria5.vercel.app",
+        "https://frontend-ria5.vercel.app",
     ],
+
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
