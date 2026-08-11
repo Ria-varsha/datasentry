@@ -3,5 +3,10 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "installCommand": "npm install",
-  "framework": "vite"
+  "framework": "vite",
+  "build": {
+    "env": {
+      "VITE_API_URL": "https://datasentry-api-cj0w.onrender.com"
+    }
+  }
 }
