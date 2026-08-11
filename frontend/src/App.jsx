@@ -1,4 +1,6 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Moon, Sun } from 'lucide-react'
 import UploadZone from './components/UploadZone'
 import Dashboard  from './components/Dashboard'
 
@@ -30,6 +32,31 @@ function ShieldIcon({ size = 18, stroke = 'white' }) {
    APP
    ═══════════════════════════════════════════════════════════════════════════ */
 export default function App() {
+  const [isDark, setIsDark] = useState(true)
+
+  // Initialize theme from localStorage or system preference
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme')
+    if (savedTheme === 'light') {
+      setIsDark(false)
+      document.documentElement.classList.remove('dark')
+    } else {
+      setIsDark(true)
+      document.documentElement.classList.add('dark')
+    }
+  }, [])
+
+  const toggleTheme = () => {
+    setIsDark(!isDark)
+    if (isDark) {
+      document.documentElement.classList.remove('dark')
+      localStorage.setItem('theme', 'light')
+    } else {
+      document.documentElement.classList.add('dark')
+      localStorage.setItem('theme', 'dark')
+    }
+  }
+
   // phase: 'idle' | 'profiling' | 'validating' | 'done' | 'error'
   const [phase,      setPhase]      = useState('idle')
   const [profileData, setProfileData] = useState(null)   // from /api/datasets/profile
@@ -123,17 +150,24 @@ export default function App() {
                 <ShieldIcon size={18} stroke="white" />
               </div>
               <div>
-                <p className="font-display font-bold text-[15px] leading-none tracking-tight" style={{ color: '#f1f5f9' }}>
+                <p className="font-display font-bold text-[15px] leading-none tracking-tight text-slate-900 dark:text-slate-100 transition-colors">
                   DataSentry
                 </p>
-                <p className="text-[10px] font-semibold tracking-widest mt-0.5 uppercase" style={{ color: '#6366f1' }}>
-                  v2 · Validation Platform
+                <p className="text-[10px] font-semibold tracking-widest mt-0.5 uppercase text-indigo-600 dark:text-indigo-400 transition-colors">
+                  Intelligent Data Quality
                 </p>
               </div>
             </div>
 
             {/* Right */}
             <div className="flex items-center gap-3">
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors bg-slate-200/50 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10"
+                aria-label="Toggle Theme"
+              >
+                {isDark ? <Sun size={18} /> : <Moon size={18} />}
+              </button>
               <span className="badge badge-emerald">
                 <span
                   className="w-1.5 h-1.5 rounded-full"
@@ -176,13 +210,15 @@ export default function App() {
                 Intelligent Data Quality Platform &bull; v2.0
               </div>
 
-              <h1
-                className="font-display font-bold mb-4"
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+                className="font-display font-bold mb-4 text-slate-900 dark:text-slate-100 transition-colors"
                 style={{
                   fontSize: 'clamp(2rem, 4.5vw, 3.25rem)',
                   lineHeight: 1.1,
                   letterSpacing: '-0.03em',
-                  color: '#f1f5f9',
                 }}
               >
                 Validate, Classify &amp; Explain
@@ -190,12 +226,17 @@ export default function App() {
                 <span className="gradient-text-brand">Dataset Quality</span>
                 <br />
                 at Every Record
-              </h1>
+              </motion.h1>
 
-              <p className="text-base max-w-md mx-auto leading-relaxed" style={{ color: '#64748b' }}>
+              <motion.p 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                className="text-base max-w-md mx-auto leading-relaxed text-slate-600 dark:text-slate-400 transition-colors"
+              >
                 Upload a CSV. DataSentry profiles the dataset, enforces 7 configurable validation rules per record,
                 and produces a quality score — with explainable errors for every quarantined row.
-              </p>
+              </motion.p>
 
               {/* Feature chips */}
               <div className="flex flex-wrap justify-center gap-2 mt-7">
@@ -215,27 +256,43 @@ export default function App() {
             </div>
           )}
 
-          {/* Upload zone */}
-          {showUpload && (
-            <UploadZone
-              onUpload={handleUpload}
-              phase={phase}
-              errorMsg={phase === 'error' ? errorMsg : ''}
-              onRetry={handleReset}
-              profileData={profileData}
-            />
-          )}
+          <AnimatePresence mode="wait">
+            {showUpload && (
+              <motion.div 
+                key="upload"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95, filter: 'blur(4px)' }}
+                transition={{ duration: 0.4 }}
+              >
+                <UploadZone
+                  onUpload={handleUpload}
+                  phase={phase}
+                  errorMsg={phase === 'error' ? errorMsg : ''}
+                  onRetry={handleReset}
+                  profileData={profileData}
+                />
+              </motion.div>
+            )}
 
-          {/* Dashboard */}
-          {phase === 'done' && metrics && (
-            <Dashboard
-              metrics={metrics}
-              fileName={fileName}
-              datasetId={datasetId}
-              apiBase={API_BASE}
-              onReset={handleReset}
-            />
-          )}
+            {/* Dashboard */}
+            {phase === 'done' && metrics && (
+              <motion.div
+                key="dashboard"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.1 }}
+              >
+                <Dashboard
+                  metrics={metrics}
+                  fileName={fileName}
+                  datasetId={datasetId}
+                  apiBase={API_BASE}
+                  onReset={handleReset}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </main>
 
         {/* ── Footer ───────────────────────────────────────────────────── */}

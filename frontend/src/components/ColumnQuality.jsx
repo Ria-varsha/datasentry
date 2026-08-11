@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 
 /**
  * Animated horizontal bar chart showing per-column quality percentages.
@@ -37,29 +38,30 @@ function ColBar({ colName, pct, delay }) {
   }, [delay])
 
   return (
-    <div
-      className="anim-fade-up"
-      style={{ animationDelay: `${delay}ms`, opacity: 0 }}
+    <motion.div
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.3, delay: delay / 1000 }}
     >
       <div className="flex items-center justify-between mb-1.5">
-        <span className="font-mono text-xs" style={{ color: '#94a3b8' }}>{colName}</span>
+        <span className="font-mono text-xs text-slate-500 dark:text-slate-400 transition-colors">{colName}</span>
         <span
-          className="font-mono text-xs font-bold metric-value"
+          className="font-mono text-xs font-bold metric-value transition-colors"
           style={{ color: textColor(pct), minWidth: '3.2rem', textAlign: 'right' }}
         >
           {pct.toFixed(1)}%
         </span>
       </div>
-      <div className="column-bar-track">
+      <div className="column-bar-track bg-slate-200 dark:bg-white/5 transition-colors">
         <div
-          className="column-bar-fill"
+          className="column-bar-fill transition-colors"
           style={{
             width: go ? `${pct}%` : '0%',
             background: barColor(pct),
           }}
         />
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -75,10 +77,10 @@ export default function ColumnQuality({ columnQuality }) {
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h3 className="text-sm font-semibold" style={{ color: '#f1f5f9' }}>
+          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100 transition-colors">
             Column Quality
           </h3>
-          <p className="text-xs mt-0.5" style={{ color: '#64748b' }}>
+          <p className="text-xs mt-0.5 text-slate-500 dark:text-slate-400 transition-colors">
             Valid values per column · avg {avgScore.toFixed(1)}%
           </p>
         </div>
@@ -98,7 +100,7 @@ export default function ColumnQuality({ columnQuality }) {
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-3 mt-6 pt-5" style={{ borderTop: '1px solid rgba(99,102,241,0.12)' }}>
+      <div className="flex flex-wrap gap-3 mt-6 pt-5 border-t border-slate-200 dark:border-slate-700/50 transition-colors">
         {[
           { range: '≥ 90%', color: '#34d399', label: 'Excellent' },
           { range: '≥ 75%', color: '#a5b4fc', label: 'Good' },
@@ -107,7 +109,7 @@ export default function ColumnQuality({ columnQuality }) {
         ].map(({ range, color, label }) => (
           <div key={label} className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full" style={{ background: color }} />
-            <span className="text-xs" style={{ color: '#475569' }}>
+            <span className="text-xs text-slate-500 dark:text-slate-400 transition-colors">
               {range} — {label}
             </span>
           </div>

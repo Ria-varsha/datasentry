@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
+import { motion } from 'framer-motion'
 import QualityScore from './QualityScore'
 import ColumnQuality from './ColumnQuality'
 
@@ -47,14 +48,18 @@ function useRipple(ref) {
    ═══════════════════════════════════════════════════════════════════════════ */
 function MetricCard({ value, label, sublabel, accentColor, borderColor, badgeBg, badgeColor, badgeBorder, badgeText, iconSvg, delay }) {
   return (
-    <div
-      className="metric-card anim-fade-up"
-      style={{ animationDelay: `${delay}ms`, opacity: 0, borderColor }}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: delay / 1000 }}
+      whileHover={{ scale: 1.02 }}
+      className="metric-card bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 shadow-card transition-colors"
+      style={{ borderColor }}
     >
       <div className="flex items-start justify-between mb-5">
         <div
-          className="w-11 h-11 rounded-2xl flex items-center justify-center"
-          style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${borderColor}` }}
+          className="w-11 h-11 rounded-2xl flex items-center justify-center transition-colors"
+          style={{ background: 'rgba(99,102,241,0.06)', border: `1px solid ${borderColor}` }}
         >
           {iconSvg}
         </div>
@@ -66,19 +71,19 @@ function MetricCard({ value, label, sublabel, accentColor, borderColor, badgeBg,
         </span>
       </div>
       <p
-        className="font-display font-bold metric-value mb-1"
+        className="font-display font-bold metric-value mb-1 transition-colors"
         style={{ fontSize: '2.1rem', lineHeight: 1, color: accentColor, letterSpacing: '-0.04em' }}
       >
         <AnimatedNumber value={value} />
       </p>
-      <p className="text-sm font-semibold" style={{ color: '#cbd5e1' }}>{label}</p>
-      <p className="text-xs mt-0.5" style={{ color: '#475569' }}>{sublabel}</p>
+      <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 transition-colors">{label}</p>
+      <p className="text-xs mt-0.5 text-slate-500 dark:text-slate-400 transition-colors">{sublabel}</p>
       <div
         className="absolute bottom-0 right-0 w-20 h-20 rounded-tl-full"
         style={{ background: accentColor, opacity: 0.05 }}
         aria-hidden
       />
-    </div>
+    </motion.div>
   )
 }
 
@@ -96,32 +101,34 @@ function ErrorRow({ rank, reason, count, maxCount, totalQuar, delay }) {
     rank <= 3  ? '#f59e0b' : '#94a3b8'
 
   return (
-    <div
-      className="error-row anim-fade-up"
-      style={{ animationDelay: `${delay}ms`, opacity: 0 }}
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.4, delay: delay / 1000 }}
+      className="error-row p-3 rounded-xl bg-slate-50 dark:bg-slate-800/30 border border-slate-100 dark:border-transparent transition-colors"
     >
       <div className="flex items-center gap-3 mb-2.5">
         <span
-          className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0"
+          className="w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors"
           style={{ background: 'rgba(245,158,11,0.12)', color: '#fbbf24' }}
         >
           {rank}
         </span>
         <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: dotColor }} />
-        <span className="text-sm flex-1 leading-snug" style={{ color: '#cbd5e1' }}>{reason}</span>
+        <span className="text-sm flex-1 leading-snug text-slate-700 dark:text-slate-300 transition-colors">{reason}</span>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <span className="text-xs" style={{ color: '#475569' }}>{relPct.toFixed(1)}%</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400 transition-colors">{relPct.toFixed(1)}%</span>
           <span
-            className="font-display font-bold metric-value"
+            className="font-display font-bold metric-value transition-colors"
             style={{ fontSize: '1.05rem', color: '#fbbf24', minWidth: '2.5rem', textAlign: 'right' }}
           >
             {count}
           </span>
         </div>
       </div>
-      <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(245,158,11,0.1)' }}>
+      <div className="w-full h-1.5 rounded-full overflow-hidden transition-colors" style={{ background: 'rgba(245,158,11,0.1)' }}>
         <div
-          className="h-full rounded-full"
+          className="h-full rounded-full transition-colors"
           style={{
             width: go ? `${pct}%` : '0%',
             background: 'linear-gradient(90deg, #b45309, #d97706, #f59e0b)',
@@ -130,7 +137,7 @@ function ErrorRow({ rank, reason, count, maxCount, totalQuar, delay }) {
           }}
         />
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -195,10 +202,9 @@ export default function Dashboard({ metrics, fileName, datasetId, apiBase, onRes
   return (
     <div className="max-w-5xl mx-auto space-y-5 anim-fade-scale">
 
-      {/* ── File status bar ──────────────────────────────────────────────── */}
-      <div className="surface flex items-center gap-4 px-5 py-4" style={{ borderRadius: 16 }}>
+      <div className="surface bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50 flex items-center gap-4 px-5 py-4 transition-colors" style={{ borderRadius: 16 }}>
         <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors"
           style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#818cf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -209,7 +215,7 @@ export default function Dashboard({ metrics, fileName, datasetId, apiBase, onRes
           </svg>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold truncate" style={{ color: '#f1f5f9' }}>{fileName}</p>
+          <p className="text-sm font-semibold truncate text-slate-800 dark:text-slate-100 transition-colors">{fileName}</p>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <span className="badge badge-emerald" style={{ fontSize: '10px', padding: '2px 8px' }}>
               <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -217,17 +223,17 @@ export default function Dashboard({ metrics, fileName, datasetId, apiBase, onRes
               </svg>
               Validated
             </span>
-            <span className="text-xs" style={{ color: '#475569' }}>·</span>
-            <span className="font-mono text-xs" style={{ color: '#64748b' }}>{total_rows.toLocaleString()} rows</span>
-            <span className="text-xs" style={{ color: '#475569' }}>·</span>
-            <span className="font-mono text-xs" style={{ color: '#64748b' }}>ID: {datasetId}</span>
+            <span className="text-xs text-slate-400 dark:text-slate-500 transition-colors">·</span>
+            <span className="font-mono text-xs text-slate-500 dark:text-slate-400 transition-colors">{total_rows.toLocaleString()} rows</span>
+            <span className="text-xs text-slate-400 dark:text-slate-500 transition-colors">·</span>
+            <span className="font-mono text-xs text-slate-500 dark:text-slate-400 transition-colors">ID: {datasetId}</span>
           </div>
         </div>
         <button
           id="process-new-btn"
           ref={resetRef}
           onClick={(e) => { createRipple(e); onReset() }}
-          className="btn btn-ghost px-4 py-2.5 text-sm rounded-xl flex-shrink-0"
+          className="btn btn-ghost px-4 py-2.5 text-sm rounded-xl flex-shrink-0 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="1 4 1 10 7 10"/>
@@ -278,11 +284,11 @@ export default function Dashboard({ metrics, fileName, datasetId, apiBase, onRes
       </div>
 
       {/* ── Quality Overview (ring + column bars) ─────────────────────────── */}
-      <div className="surface p-7" style={{ borderRadius: 20 }}>
+      <div className="surface p-7 bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50 transition-colors" style={{ borderRadius: 20 }}>
         <div className="flex items-start justify-between mb-6">
           <div>
-            <h3 className="text-sm font-semibold" style={{ color: '#f1f5f9' }}>Dataset Quality Overview</h3>
-            <p className="text-xs mt-0.5" style={{ color: '#64748b' }}>
+            <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100 transition-colors">Dataset Quality Overview</h3>
+            <p className="text-xs mt-0.5 text-slate-500 dark:text-slate-400 transition-colors">
               Quality Score = (valid ÷ total) × 100
             </p>
           </div>
@@ -312,13 +318,13 @@ export default function Dashboard({ metrics, fileName, datasetId, apiBase, onRes
 
       {/* ── Top Data Quality Issues ───────────────────────────────────────── */}
       {sortedErrors.length > 0 && (
-        <div className="surface p-7" style={{ borderRadius: 20 }}>
+        <div className="surface p-7 bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50 transition-colors" style={{ borderRadius: 20 }}>
           <div className="flex items-start justify-between mb-5">
             <div>
-              <h3 className="text-sm font-semibold mb-0.5" style={{ color: '#f1f5f9' }}>
+              <h3 className="text-sm font-semibold mb-0.5 text-slate-800 dark:text-slate-100 transition-colors">
                 Top Data Quality Issues
               </h3>
-              <p className="text-xs" style={{ color: '#64748b' }}>
+              <p className="text-xs text-slate-500 dark:text-slate-400 transition-colors">
                 {sortedErrors.length} distinct error {sortedErrors.length === 1 ? 'category' : 'categories'} · ranked by frequency
               </p>
             </div>
@@ -348,12 +354,12 @@ export default function Dashboard({ metrics, fileName, datasetId, apiBase, onRes
       )}
 
       {/* ── Downloads ────────────────────────────────────────────────────── */}
-      <div className="surface p-7" style={{ borderRadius: 20 }}>
+      <div className="surface p-7 bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50 transition-colors" style={{ borderRadius: 20 }}>
         <div className="mb-5">
-          <h3 className="text-sm font-semibold mb-0.5" style={{ color: '#f1f5f9' }}>Download Outputs</h3>
-          <p className="text-xs" style={{ color: '#64748b' }}>
+          <h3 className="text-sm font-semibold mb-0.5 text-slate-800 dark:text-slate-100 transition-colors">Download Outputs</h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 transition-colors">
             Clean data is split into 1,000-row CSV chunks and zipped. The quarantine file includes a{' '}
-            <span className="font-mono" style={{ color: '#94a3b8' }}>Quarantine_Reason</span> column with all errors per row.
+            <span className="font-mono text-slate-400 dark:text-slate-500 transition-colors">Quarantine_Reason</span> column with all errors per row.
           </p>
         </div>
 
@@ -392,14 +398,14 @@ export default function Dashboard({ metrics, fileName, datasetId, apiBase, onRes
           />
         </div>
 
-        <div className="mt-5 pt-5 flex items-start gap-2" style={{ borderTop: '1px solid rgba(99,102,241,0.1)' }}>
-          <svg className="flex-shrink-0 mt-0.5" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <div className="mt-5 pt-5 flex items-start gap-2 border-t border-slate-200 dark:border-slate-700/50 transition-colors">
+          <svg className="flex-shrink-0 mt-0.5 text-slate-500 dark:text-slate-400 transition-colors" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="12" cy="12" r="10"/>
             <line x1="12" y1="16" x2="12" y2="12"/>
             <line x1="12" y1="8"  x2="12.01" y2="8"/>
           </svg>
-          <p className="text-xs leading-relaxed" style={{ color: '#475569' }}>
-            Output files are associated with dataset <span className="font-mono" style={{ color: '#64748b' }}>{datasetId}</span>.
+          <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400 transition-colors">
+            Output files are associated with dataset <span className="font-mono text-slate-400 dark:text-slate-500 transition-colors">{datasetId}</span>.
             Uploading a new file creates a separate dataset session.
           </p>
         </div>

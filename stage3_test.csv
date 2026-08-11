@@ -1,0 +1,6 @@
+customer_id,full_name,email,phone_number,age,city,signup_date
+100001,Valid Chennai Elder,elder@test.com,9876543210,35,Chennai,15-03-2024
+100002,Invalid Chennai Youth,youth@test.com,9876543211,25,Chennai,16-03-2024
+100003,Valid Mumbai Youth,mumbai@test.com,9876543212,25,Mumbai,17-03-2024
+100004,Invalid Chennai Teen,teen@test.com,9876543213,18,Chennai,18-03-2024
+100005,Valid Bangalore User,bangalore@test.com,9876543214,40,Bangalore,19-03-2024

@@ -46,7 +46,7 @@ def _valid_row(cid: int = 100001) -> dict:
         "email":        "arun.kumar@gmail.com",
         "phone_number": "9876543210",
         "age":          "28",
-        "city":         "Chennai",
+        "city":         "Bangalore",
         "signup_date":  "15-03-2024",
     }
 
@@ -337,6 +337,8 @@ def test_all_allowed_cities_valid():
     for city in VALID_CITIES:
         row = _valid_row()
         row["city"] = city
+        if city == "Chennai":
+            row["age"] = "35" # Ensure Chennai meets cross-column age rule
         _, vr = _upload_and_validate(_make_csv([row]))
         assert vr.json()["clean_count"] == 1, f"City '{city}' should be valid"
 

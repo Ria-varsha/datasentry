@@ -1,5 +1,6 @@
 import { useCallback, useState, useEffect, useRef } from 'react'
 import { useDropzone } from 'react-dropzone'
+import { motion } from 'framer-motion'
 
 /* ── Ripple hook ─────────────────────────────────────────────────────────── */
 function useRipple(ref) {
@@ -307,13 +308,16 @@ export default function UploadZone({ onUpload, phase, errorMsg, onRetry, profile
 
   /* ── Idle / drag UI ────────────────────────────────────────────────────── */
   return (
-    <div className="max-w-xl mx-auto space-y-4 anim-fade-up">
+    <div className="max-w-xl mx-auto space-y-4">
 
       {/* Drop zone */}
-      <div
+      <motion.div
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
         {...getRootProps()}
-        className={`rounded-3xl p-12 text-center cursor-default relative overflow-hidden
-          ${isDragActive ? 'dropzone-active' : 'dropzone-idle'}`}
+        className={`rounded-3xl p-12 text-center cursor-default relative overflow-hidden transition-colors
+          ${isDragActive ? 'bg-indigo-50/50 dark:bg-indigo-900/20 border-indigo-400 dark:border-indigo-500/50' : 'bg-white dark:bg-slate-800/50 border-slate-200 dark:border-slate-700/50 hover:border-indigo-300 dark:hover:border-indigo-500/30'}
+          border-2 border-dashed`}
         style={{ borderRadius: 24 }}
       >
         <input {...getInputProps()} id="csv-file-input" />
@@ -364,10 +368,10 @@ export default function UploadZone({ onUpload, phase, errorMsg, onRetry, profile
           </div>
         </div>
 
-        <h2 className="font-display font-semibold text-[1.25rem] mb-2 tracking-tight" style={{ color: '#f1f5f9' }}>
+        <h2 className="font-display font-semibold text-[1.25rem] mb-2 tracking-tight text-slate-900 dark:text-slate-100 transition-colors">
           {isDragActive ? 'Release to Start Validation' : 'Drop your dataset here'}
         </h2>
-        <p className="text-sm mb-8 leading-relaxed" style={{ color: '#64748b' }}>
+        <p className="text-sm mb-8 leading-relaxed text-slate-500 dark:text-slate-400 transition-colors">
           {isDragActive
             ? 'DataSentry will profile & validate immediately'
             : 'Drag & drop a .csv or .xlsx file, or click below to browse'}
@@ -388,8 +392,8 @@ export default function UploadZone({ onUpload, phase, errorMsg, onRetry, profile
           Browse Files
         </button>
 
-        <p className="text-xs mt-5" style={{ color: '#374151' }}>
-          Only <span className="font-mono" style={{ color: '#64748b' }}>.csv / .xlsx</span> files · Max 25 MB
+        <p className="text-xs mt-5 text-slate-400 dark:text-slate-500 transition-colors">
+          Only <span className="font-mono text-slate-500 dark:text-slate-400">.csv / .xlsx</span> files · Max 25 MB
         </p>
 
         {/* Status dot */}
@@ -401,7 +405,7 @@ export default function UploadZone({ onUpload, phase, errorMsg, onRetry, profile
             transition: 'all 0.3s ease',
           }}
         />
-      </div>
+      </motion.div>
 
       {/* Error banner */}
       {errorMsg && (
@@ -438,14 +442,14 @@ export default function UploadZone({ onUpload, phase, errorMsg, onRetry, profile
 
       {/* Schema reference */}
       {!errorMsg && (
-        <div className="surface-flat p-5">
+        <div className="surface-flat p-5 bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50 rounded-2xl transition-colors">
           <div className="flex items-center gap-2 mb-3">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-slate-500 dark:text-slate-400" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="10"/>
               <line x1="12" y1="16" x2="12" y2="12"/>
               <line x1="12" y1="8" x2="12.01" y2="8"/>
             </svg>
-            <span className="stat-label">Required CSV Columns</span>
+            <span className="stat-label text-slate-700 dark:text-slate-300 transition-colors">Required CSV Columns</span>
           </div>
           <div className="flex flex-wrap gap-x-4 gap-y-2.5">
             {[
@@ -458,8 +462,8 @@ export default function UploadZone({ onUpload, phase, errorMsg, onRetry, profile
               { col: 'signup_date',   note: 'DD-MM-YYYY / YYYY-MM-DD' },
             ].map(({ col, note }) => (
               <div key={col} className="flex items-center gap-1.5">
-                <span className="col-chip">{col}</span>
-                <span className="text-xs" style={{ color: '#374151' }}>{note}</span>
+                <span className="col-chip bg-slate-100 dark:bg-slate-700/50 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-600 transition-colors">{col}</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 transition-colors">{note}</span>
               </div>
             ))}
           </div>

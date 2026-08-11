@@ -414,6 +414,17 @@ async def validate_dataset(dataset_id: str):
             dup_err = f"Duplicate customer_id: {cid}"
             row_errors.append(dup_err)
             col_errors.setdefault("customer_id", []).append(dup_err)
+        # --- Stage 3: Cross-Column Validation (The AI Loop Change) ---
+        if str(row.get("city")).strip().title() == "Chennai" and not _is_empty(row.get("age")):
+            try:
+                age_val = int(row.get("age"))
+                if age_val < 30:
+                    err = "Chennai users must be at least 30 years old"
+                    row_errors.append(err)
+                    col_errors.setdefault("age", []).append(err)
+                    col_valid_counts["age"] -= 1 # Correct the valid count since it passed single-column check earlier
+            except ValueError:
+                pass # Handled by earlier age type validation
 
         if row_errors:
             record = row.to_dict()

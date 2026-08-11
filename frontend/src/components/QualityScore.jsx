@@ -94,7 +94,8 @@ export default function QualityScore({ score, cleanCount, quarCount, duplicateCo
             textAnchor="middle" dominantBaseline="middle"
             fontSize="11" fontWeight="600"
             fontFamily="Inter, sans-serif"
-            fill="#64748b" letterSpacing="2"
+            className="fill-slate-500 dark:fill-slate-400 transition-colors"
+            letterSpacing="2"
           >
             / 100
           </text>
@@ -115,22 +116,21 @@ export default function QualityScore({ score, cleanCount, quarCount, duplicateCo
         ].map(({ value, label, color }) => (
           <div
             key={label}
-            className="rounded-xl py-3"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+            className="rounded-xl py-3 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 transition-colors"
           >
             <p
-              className="font-display font-bold text-xl metric-value"
+              className="font-display font-bold text-xl metric-value transition-colors"
               style={{ color }}
             >
               {value.toLocaleString()}
             </p>
-            <p className="text-xs mt-0.5" style={{ color: '#64748b' }}>{label}</p>
+            <p className="text-xs mt-0.5 text-slate-500 dark:text-slate-400 transition-colors">{label}</p>
           </div>
         ))}
       </div>
 
       {/* Formula note */}
-      <p className="text-xs text-center" style={{ color: '#475569' }}>
+      <p className="text-xs text-center text-slate-400 dark:text-slate-500 transition-colors">
         Score = (valid ÷ total) × 100 &nbsp;·&nbsp; {totalRows.toLocaleString()} records analysed
       </p>
     </div>

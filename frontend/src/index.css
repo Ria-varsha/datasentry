@@ -40,8 +40,7 @@ html { scroll-behavior: smooth; }
 }
 
 body {
-  background-color: var(--navy-900);
-  color: var(--text-1);
+  @apply bg-slate-50 dark:bg-[#080d1e] text-slate-900 dark:text-[#f8fafc] transition-colors duration-500 ease-in-out;
   font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
