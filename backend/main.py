@@ -41,6 +41,8 @@ app.add_middleware(
         "http://localhost:5173",
         "http://localhost:5174",
         "https://datasentry.vercel.app",
+        "https://frontend-blue-nine-82.vercel.app",
+        "https://frontend-9vzgsyrbb-ria5.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
