@@ -495,7 +495,7 @@ def test_red_green_inject_and_fix():
     assert vr_before.json()["clean_count"] == 1, "Age 18 should be CLEAN before bug injection"
 
     # Inject bug (age min: 18 -> 25)
-    inj = client.post("/api/debug/inject-bug")
+    inj = client.post("/api/debug/inject-bug?token=datasentry-debug")
     assert inj.status_code == 200
     assert inj.json()["status"] == "bug_injected"
 
@@ -504,7 +504,7 @@ def test_red_green_inject_and_fix():
     assert vr_red.json()["quarantine_count"] == 1, "Age 18 should FAIL after bug injection (Red)"
 
     # Fix
-    fix = client.post("/api/debug/fix-bug")
+    fix = client.post("/api/debug/fix-bug?token=datasentry-debug")
     assert fix.status_code == 200
     assert fix.json()["status"] == "bug_fixed"
 

@@ -64,13 +64,31 @@ app.add_middleware(
 MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024  # 25 MB
 
 # Global rule registry (toggle-able per session)
+_datasets: dict[str, dict] = {}
 _rules: list[Rule] = build_default_rules()
+
+def _cleanup_old_datasets():
+    """Security/Hygiene: Clean up temporary files older than 1 hour to prevent disk/memory leaks."""
+    now = datetime.now(timezone.utc)
+    to_delete = []
+    for d_id, data in _datasets.items():
+        upload_time_str = data.get("uploaded_at")
+        if upload_time_str:
+            try:
+                dt = datetime.fromisoformat(upload_time_str)
+                if (now - dt).total_seconds() > 3600:
+                    to_delete.append(d_id)
+            except:
+                pass
+    for d_id in to_delete:
+        tmp_dir = _datasets[d_id].get("tmp_dir")
+        if tmp_dir and os.path.exists(tmp_dir):
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+        del _datasets[d_id]
 
 # ---------------------------------------------------------------------------
 # In-memory dataset store
 # ---------------------------------------------------------------------------
-
-_datasets: dict[str, dict] = {}
 
 
 # ---------------------------------------------------------------------------
@@ -142,6 +160,8 @@ async def profile_dataset(file: UploadFile = File(...)):
     Returns a dataset_id and a profile summary.
     Validates file type, size, schema, and computes basic statistics.
     """
+    _cleanup_old_datasets()
+
     # ── 1. File type validation ───────────────────────────────────────────────
     filename = file.filename or ""
     is_csv   = filename.lower().endswith(".csv")
@@ -430,9 +450,11 @@ async def download_quarantine(dataset_id: str):
 # ---------------------------------------------------------------------------
 
 @app.post("/api/debug/inject-bug")
-async def inject_bug():
+async def inject_bug(token: str = ""):
     """DELIBERATE BUG: Changes age minimum from 18 to 25.
     Rows with age 18-24 will now fail - demonstrating the Red run."""
+    if token != "datasentry-debug":
+        raise HTTPException(status_code=403, detail="Invalid or missing debug token.")
     changed = []
     for rule in _rules:
         if rule.id == "age_range" and hasattr(rule, "min_val"):
@@ -447,8 +469,10 @@ async def inject_bug():
 
 
 @app.post("/api/debug/fix-bug")
-async def fix_bug():
+async def fix_bug(token: str = ""):
     """Restores age minimum to the correct value (18). Green run."""
+    if token != "datasentry-debug":
+        raise HTTPException(status_code=403, detail="Invalid or missing debug token.")
     changed = []
     for rule in _rules:
         if rule.id == "age_range" and hasattr(rule, "min_val"):
