@@ -22,6 +22,9 @@ import shutil
 from collections import defaultdict
 from datetime import datetime, timezone
 
+from dotenv import load_dotenv
+load_dotenv()
+
 import pandas as pd
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -453,7 +456,8 @@ async def download_quarantine(dataset_id: str):
 async def inject_bug(token: str = ""):
     """DELIBERATE BUG: Changes age minimum from 18 to 25.
     Rows with age 18-24 will now fail - demonstrating the Red run."""
-    if token != "datasentry-debug":
+    expected_token = os.environ.get("DATASENTRY_DEBUG_TOKEN")
+    if not expected_token or token != expected_token:
         raise HTTPException(status_code=403, detail="Invalid or missing debug token.")
     changed = []
     for rule in _rules:
@@ -471,7 +475,8 @@ async def inject_bug(token: str = ""):
 @app.post("/api/debug/fix-bug")
 async def fix_bug(token: str = ""):
     """Restores age minimum to the correct value (18). Green run."""
-    if token != "datasentry-debug":
+    expected_token = os.environ.get("DATASENTRY_DEBUG_TOKEN")
+    if not expected_token or token != expected_token:
         raise HTTPException(status_code=403, detail="Invalid or missing debug token.")
     changed = []
     for rule in _rules:
