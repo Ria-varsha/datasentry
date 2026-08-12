@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Moon, Sun } from 'lucide-react'
 import UploadZone from './components/UploadZone'
 import Dashboard  from './components/Dashboard'
+import ProfileCard from './components/ProfileCard'
+import RuleConfig  from './components/RuleConfig'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
@@ -57,15 +59,15 @@ export default function App() {
     }
   }
 
-  // phase: 'idle' | 'profiling' | 'validating' | 'done' | 'error'
-  const [phase,      setPhase]      = useState('idle')
-  const [profileData, setProfileData] = useState(null)   // from /api/datasets/profile
-  const [metrics,    setMetrics]    = useState(null)     // from /api/datasets/{id}/validate
-  const [datasetId,  setDatasetId]  = useState(null)
-  const [errorMsg,   setErrorMsg]   = useState('')
-  const [fileName,   setFileName]   = useState('')
+  // phase: 'idle' | 'profiling' | 'profile_review' | 'rule_config' | 'validating' | 'done' | 'error'
+  const [phase,       setPhase]      = useState('idle')
+  const [profileData, setProfileData] = useState(null)
+  const [metrics,     setMetrics]    = useState(null)
+  const [datasetId,   setDatasetId]  = useState(null)
+  const [errorMsg,    setErrorMsg]   = useState('')
+  const [fileName,    setFileName]   = useState('')
 
-  /* ── 2-phase upload handler ─────────────────────────────────────────── */
+  /* ── Step 1: Upload -> Profile ──────────────────────────────────────── */
   const handleUpload = useCallback(async (file) => {
     setPhase('profiling')
     setMetrics(null)
@@ -77,7 +79,6 @@ export default function App() {
     formData.append('file', file)
 
     try {
-      // Phase 1 — Profile
       const profileRes = await fetch(`${API_BASE}/api/datasets/profile`, {
         method: 'POST',
         body: formData,
@@ -93,10 +94,24 @@ export default function App() {
       const profile = await profileRes.json()
       setProfileData(profile)
       setDatasetId(profile.dataset_id)
+      setPhase('profile_review')   // STOP: show profile before validating
+    } catch (err) {
+      setErrorMsg(err.message || 'Upload failed — make sure the backend is running on port 8000.')
+      setPhase('error')
+    }
+  }, [])
 
-      // Phase 2 — Validate
-      setPhase('validating')
-      const validateRes = await fetch(`${API_BASE}/api/datasets/${profile.dataset_id}/validate`, {
+  /* ── Step 2: Profile -> Rule Config ─────────────────────────────────── */
+  const handleConfigure = useCallback(() => {
+    setPhase('rule_config')
+  }, [])
+
+  /* ── Step 3: Validate ───────────────────────────────────────────────── */
+  const handleValidate = useCallback(async () => {
+    if (!datasetId) return
+    setPhase('validating')
+    try {
+      const validateRes = await fetch(`${API_BASE}/api/datasets/${datasetId}/validate`, {
         method: 'POST',
       })
       if (!validateRes.ok) {
@@ -111,12 +126,12 @@ export default function App() {
       setMetrics(result)
       setPhase('done')
     } catch (err) {
-      setErrorMsg(err.message || 'Upload failed — make sure the backend is running on port 8000.')
+      setErrorMsg(err.message || 'Validation failed.')
       setPhase('error')
     }
-  }, [])
+  }, [datasetId])
 
-  /* ── Reset handler ───────────────────────────────────────────────────── */
+  /* ── Reset ──────────────────────────────────────────────────────────── */
   const handleReset = useCallback(() => {
     setPhase('idle')
     setMetrics(null)
@@ -126,7 +141,8 @@ export default function App() {
     setDatasetId(null)
   }, [])
 
-  const showUpload = phase !== 'done'
+  const showHero   = ['idle', 'profiling', 'error'].includes(phase)
+  const showUpload = ['idle', 'profiling', 'error'].includes(phase)
 
   return (
     <>
@@ -198,8 +214,8 @@ export default function App() {
         {/* ── Main ─────────────────────────────────────────────────────── */}
         <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-12">
 
-          {/* Hero */}
-          {showUpload && (
+          {/* Hero - only on idle/error */}
+          {showHero && (
             <div className="text-center mb-10 anim-fade-up">
               {/* Eyebrow badge */}
               <div
@@ -257,8 +273,9 @@ export default function App() {
           )}
 
           <AnimatePresence mode="wait">
+            {/* Upload Zone */}
             {showUpload && (
-              <motion.div 
+              <motion.div
                 key="upload"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -272,6 +289,44 @@ export default function App() {
                   onRetry={handleReset}
                   profileData={profileData}
                 />
+              </motion.div>
+            )}
+
+            {/* Profile Review */}
+            {phase === 'profile_review' && profileData && (
+              <motion.div key="profile" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+                <ProfileCard
+                  profile={profileData}
+                  onConfigure={handleConfigure}
+                  onValidate={handleValidate}
+                  onReset={handleReset}
+                />
+              </motion.div>
+            )}
+
+            {/* Rule Configuration */}
+            {phase === 'rule_config' && (
+              <motion.div key="rules" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+                <RuleConfig
+                  apiBase={API_BASE}
+                  onValidate={handleValidate}
+                  onBack={() => setPhase('profile_review')}
+                />
+              </motion.div>
+            )}
+
+            {/* Validating spinner (shown while waiting for result) */}
+            {phase === 'validating' && (
+              <motion.div key="validating" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="flex flex-col items-center justify-center py-24 gap-6">
+                <div className="relative">
+                  <div className="w-16 h-16 rounded-full border-4 border-indigo-500/20" />
+                  <div className="absolute inset-0 w-16 h-16 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
+                </div>
+                <div className="text-center">
+                  <p className="font-semibold text-slate-700 dark:text-slate-300 transition-colors">Running validation engine...</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 transition-colors">Applying {14} rules across all rows</p>
+                </div>
               </motion.div>
             )}
 

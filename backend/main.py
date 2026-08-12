@@ -1,29 +1,36 @@
 """
-DataSentry v2 — Intelligent Dataset Validation & Quality Assurance Platform
+DataSentry v2 - Intelligent Dataset Validation and Quality Assurance Platform
 FastAPI backend
 
 API workflow:
-  POST /api/datasets/profile          → upload file, get dataset_id + profile
-  POST /api/datasets/{id}/validate    → run validation, get full quality report
-  GET  /api/datasets/{id}/download/clean       → download clean ZIP
-  GET  /api/datasets/{id}/download/quarantine  → download quarantine CSV
+  POST /api/datasets/profile          - upload file, get dataset_id + full profile
+  GET  /api/rules                     - get rule manifest
+  POST /api/rules                     - toggle rules on/off
+  POST /api/datasets/{id}/validate    - run validation, get full quality report
+  GET  /api/datasets/{id}/download/clean      - download clean ZIP
+  GET  /api/datasets/{id}/download/quarantine - download quarantine CSV
+  POST /api/debug/inject-bug          - deliberately break a rule (Red/Green demo)
+  POST /api/debug/fix-bug             - restore broken rule
 """
 
 import io
 import os
-import re
 import uuid
 import zipfile
 import tempfile
 import shutil
 from collections import defaultdict
-from datetime import datetime, date, timezone
-from typing import Optional
+from datetime import datetime, timezone
 
 import pandas as pd
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
+
+from rules import (
+    build_default_rules, rules_to_manifest, _is_empty,
+    CANONICAL_COLUMNS, Rule, RangeRule, ChennaiAgeRule,
+)
 
 # ---------------------------------------------------------------------------
 # App Initialization
@@ -32,7 +39,7 @@ from fastapi.responses import FileResponse, JSONResponse
 app = FastAPI(
     title="DataSentry API",
     version="2.0.0",
-    description="Intelligent, Configurable Dataset Validation & Quality Assurance Platform",
+    description="Intelligent, Configurable Dataset Validation and Quality Assurance Platform",
 )
 
 app.add_middleware(
@@ -45,175 +52,25 @@ app.add_middleware(
         "https://frontend-9vzgsyrbb-ria5.vercel.app",
         "https://frontend-ria5.vercel.app",
     ],
-
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # ---------------------------------------------------------------------------
-# Constants & Configuration
+# Constants
 # ---------------------------------------------------------------------------
 
 MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024  # 25 MB
 
-CANONICAL_COLUMNS = [
-    "customer_id",
-    "full_name",
-    "email",
-    "phone_number",
-    "age",
-    "city",
-    "signup_date",
-]
-
-ALLOWED_CITIES = {
-    "Chennai", "Bangalore", "Hyderabad", "Mumbai", "Delhi", "Kolkata", "Pune"
-}
-
-# Regex patterns
-EMAIL_RE    = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
-PHONE_RE    = re.compile(r"^\d{10}$")
-FULLNAME_RE = re.compile(r"^[A-Za-z\s'\-]{2,50}$")   # allows apostrophe & hyphen
-DATE_FMTS   = ["%d-%m-%Y", "%Y-%m-%d"]
+# Global rule registry (toggle-able per session)
+_rules: list[Rule] = build_default_rules()
 
 # ---------------------------------------------------------------------------
 # In-memory dataset store
-#   dataset_id → {
-#       "df": DataFrame,
-#       "filename": str,
-#       "uploaded_at": str,
-#       "tmp_dir": str,         # cleaned up after download or on expiry
-#       "validation_result": dict | None,
-#   }
 # ---------------------------------------------------------------------------
 
 _datasets: dict[str, dict] = {}
-
-
-# ---------------------------------------------------------------------------
-# Validation Helpers
-# ---------------------------------------------------------------------------
-
-def _is_empty(val) -> bool:
-    """True if value is blank / NaN / None."""
-    if val is None:
-        return True
-    if isinstance(val, float) and pd.isna(val):
-        return True
-    return str(val).strip() == ""
-
-
-def validate_customer_id(val) -> list[str]:
-    if _is_empty(val):
-        return ["customer_id is required"]
-    s = str(val).strip()
-    if s.endswith(".0"):
-        s = s[:-2]
-    if not re.match(r"^\d+$", s):
-        return [f"customer_id must be numeric — got '{s}'"]
-    if len(s) != 6:
-        return [f"customer_id must be exactly 6 digits — got {len(s)} digit(s)"]
-    num = int(s)
-    if not (100000 <= num <= 999999):
-        return [f"customer_id must be 100000–999999 — got {num}"]
-    return []
-
-
-def validate_full_name(val) -> list[str]:
-    if _is_empty(val):
-        return ["full_name is required"]
-    s = str(val).strip()
-    if not FULLNAME_RE.match(s):
-        return [f"full_name must be 2–50 characters (letters, spaces, hyphens, apostrophes) — got '{s}'"]
-    return []
-
-
-def validate_email(val) -> list[str]:
-    if _is_empty(val):
-        return ["email is required"]
-    s = str(val).strip()
-    if not EMAIL_RE.match(s):
-        return [f"email format invalid — got '{s}'"]
-    return []
-
-
-def validate_phone(val) -> list[str]:
-    if _is_empty(val):
-        return ["phone_number is required"]
-    s = str(val).strip()
-    # Strip common formatting characters before checking
-    cleaned = re.sub(r"[\s\-\(\)\+]", "", s)
-    if not PHONE_RE.match(cleaned):
-        return [f"phone_number must be exactly 10 digits — got '{s}'"]
-    return []
-
-
-def validate_age(val) -> list[str]:
-    if _is_empty(val):
-        return ["age is required"]
-    s = str(val).strip()
-    if s.endswith(".0"):
-        s = s[:-2]
-    if not re.match(r"^\d+$", s):
-        return [f"age must be an integer — got '{s}'"]
-    num = int(s)
-    if num < 18:
-        return [f"age below minimum (18) — got {num}"]
-    if num > 100:
-        return [f"age above maximum (100) — got {num}"]
-    return []
-
-
-def validate_city(val) -> list[str]:
-    if _is_empty(val):
-        return ["city is required"]
-    s = str(val).strip()
-    if s not in ALLOWED_CITIES:
-        allowed = ", ".join(sorted(ALLOWED_CITIES))
-        return [f"city '{s}' not in allowed list ({allowed})"]
-    return []
-
-
-def validate_signup_date(val) -> list[str]:
-    if _is_empty(val):
-        return ["signup_date is required"]
-    s = str(val).strip()
-    parsed: Optional[date] = None
-    for fmt in DATE_FMTS:
-        try:
-            parsed = datetime.strptime(s, fmt).date()
-            break
-        except ValueError:
-            continue
-    if parsed is None:
-        return [f"signup_date must be DD-MM-YYYY or YYYY-MM-DD — got '{s}'"]
-    if parsed > date.today():
-        return [f"signup_date cannot be a future date — got '{s}'"]
-    return []
-
-
-# Maps each column name to its validator function
-COLUMN_VALIDATORS = {
-    "customer_id":  validate_customer_id,
-    "full_name":    validate_full_name,
-    "email":        validate_email,
-    "phone_number": validate_phone,
-    "age":          validate_age,
-    "city":         validate_city,
-    "signup_date":  validate_signup_date,
-}
-
-# Human-readable rule descriptions for the frontend
-COLUMN_RULES = {
-    "customer_id":  ["Required", "Integer", "6 digits", "100000–999999", "Unique"],
-    "full_name":    ["Required", "Text", "2–50 chars", "Letters/spaces/hyphens/apostrophes"],
-    "email":        ["Required", "Email format"],
-    "phone_number": ["Required", "10 digits"],
-    "age":          ["Required", "Integer", "18–100"],
-    "city":         ["Required", "Allowed values: Chennai, Bangalore, Hyderabad, Mumbai, Delhi, Kolkata, Pune"],
-    "signup_date":  ["Required", "DD-MM-YYYY or YYYY-MM-DD", "Must not be future date"],
-}
 
 
 # ---------------------------------------------------------------------------
@@ -236,9 +93,10 @@ def _categorise_error(msg: str) -> str:
     if "phone" in m:
         return "Missing Phone Number" if "required" in m else "Invalid Phone Number"
     if "age" in m:
-        if "required" in m:   return "Missing Age"
-        if "below" in m:      return "Age Below Minimum (18)"
-        if "above" in m:      return "Age Above Maximum (100)"
+        if "required" in m:       return "Missing Age"
+        if "below" in m:          return "Age Below Minimum (18)"
+        if "above" in m:          return "Age Above Maximum (100)"
+        if "chennai" in m:        return "Chennai Age Violation (cross-column)"
         return "Invalid Age"
     if "city" in m:
         return "Missing City" if "required" in m else "Invalid City"
@@ -247,6 +105,29 @@ def _categorise_error(msg: str) -> str:
         if "future" in m:     return "Future Signup Date"
         return "Invalid Date Format"
     return msg[:60]
+
+
+# ---------------------------------------------------------------------------
+# Rule Endpoints
+# GET  /api/rules
+# POST /api/rules
+# ---------------------------------------------------------------------------
+
+@app.get("/api/rules")
+async def get_rules():
+    return JSONResponse({"rules": rules_to_manifest(_rules)})
+
+
+@app.post("/api/rules")
+async def update_rules(updates: dict):
+    """Body: {"rule_id": true/false, ...}  Toggles rules on/off by id."""
+    updated = []
+    for rule in _rules:
+        if rule.id in updates:
+            rule.enabled = bool(updates[rule.id])
+            updated.append(rule.id)
+    return JSONResponse({"updated": updated, "rules": rules_to_manifest(_rules)})
+
 
 
 # ---------------------------------------------------------------------------
@@ -334,8 +215,14 @@ async def profile_dataset(file: UploadFile = File(...)):
     dup_mask        = cid_col.duplicated(keep=False) & (cid_col != "")
     duplicate_count = int(dup_mask.sum())
 
-    # ── 6. Store dataset ──────────────────────────────────────────────────────
+    # Column rule descriptions from active rules
+    column_rules: dict = defaultdict(list)
+    for r in _rules:
+        if r.enabled:
+            column_rules[r.field].append(r.description)
+
     dataset_id = "ds_" + uuid.uuid4().hex[:12]
+
     _datasets[dataset_id] = {
         "df":               df,
         "filename":         filename,
@@ -349,9 +236,10 @@ async def profile_dataset(file: UploadFile = File(...)):
         "dataset_id":      dataset_id,
         "filename":        filename,
         "total_rows":      total_rows,
+        "total_columns":   len(CANONICAL_COLUMNS),
         "columns":         CANONICAL_COLUMNS,
         "extra_columns":   extra_cols,
-        "column_rules":    COLUMN_RULES,
+        "column_rules":    column_rules,
         "missing_pct":     missing_pct,
         "duplicate_count": duplicate_count,
         "uploaded_at":     _datasets[dataset_id]["uploaded_at"],
@@ -388,51 +276,46 @@ async def validate_dataset(dataset_id: str):
         if cnt > 1 and cid != ""
     )
 
-    # ── 2. Row-level validation ────────────────────────────────────────────────
-    clean_indices:     list[int]  = []
+    clean_indices:      list[int]  = []
     quarantine_records: list[dict] = []
-    error_frequency:   dict       = defaultdict(int)
-
-    # Per-column valid count tracker
+    error_frequency:    dict       = defaultdict(int)
     col_valid_counts = {col: 0 for col in CANONICAL_COLUMNS}
 
     for idx, row in df.iterrows():
-        row_errors: list[str] = []
-        col_errors: dict[str, list[str]] = {}
+        row_errors: list[dict] = []   # structured errors now
+        row_dict = row.to_dict()
 
-        for col, validator in COLUMN_VALIDATORS.items():
-            errs = validator(row.get(col))
-            col_errors[col] = errs
-            if errs:
-                row_errors.extend(errs)
-            else:
-                col_valid_counts[col] += 1
+        for rule in _rules:
+            if not rule.enabled:
+                continue
+            field_val = row.get(rule.field)
+            errs = rule.validate(field_val, row=row_dict)
+            for e in errs:
+                row_errors.append(e.to_dict())
 
-        # Duplicate check — flag ALL occurrences
+        # Duplicate check (always active)
         cid = cid_series[idx]
         if cid in dup_cids:
-            dup_err = f"Duplicate customer_id: {cid}"
-            row_errors.append(dup_err)
-            col_errors.setdefault("customer_id", []).append(dup_err)
-        # --- Stage 3: Cross-Column Validation (The AI Loop Change) ---
-        if str(row.get("city")).strip().title() == "Chennai" and not _is_empty(row.get("age")):
-            try:
-                age_val = int(row.get("age"))
-                if age_val < 30:
-                    err = "Chennai users must be at least 30 years old"
-                    row_errors.append(err)
-                    col_errors.setdefault("age", []).append(err)
-                    col_valid_counts["age"] -= 1 # Correct the valid count since it passed single-column check earlier
-            except ValueError:
-                pass # Handled by earlier age type validation
+            row_errors.append({
+                "field":   "customer_id",
+                "value":   cid,
+                "rule":    "unique",
+                "message": f"Duplicate customer_id: {cid}",
+            })
+
+        # Track per-column validity
+        error_fields = {e["field"] for e in row_errors}
+        for col in CANONICAL_COLUMNS:
+            if col not in error_fields:
+                col_valid_counts[col] += 1
 
         if row_errors:
-            record = row.to_dict()
+            record = row_dict.copy()
             record["_validation_errors"] = row_errors
-            record["Quarantine_Reason"]  = "; ".join(row_errors)
+            record["Quarantine_Reason"]  = "; ".join(e["message"] for e in row_errors)
             quarantine_records.append(record)
-            for err in row_errors:
-                error_frequency[_categorise_error(err)] += 1
+            for e in row_errors:
+                error_frequency[_categorise_error(e["message"])] += 1
         else:
             clean_indices.append(idx)
 
@@ -440,7 +323,6 @@ async def validate_dataset(dataset_id: str):
     clean_df      = df.loc[clean_indices].reset_index(drop=True)
     quarantine_df = pd.DataFrame(quarantine_records)
 
-    # ── 4. Quality metrics ─────────────────────────────────────────────────────
     clean_count      = len(clean_df)
     quarantine_count = len(quarantine_records)
     quality_score    = round(clean_count / total_rows * 100, 1) if total_rows > 0 else 0.0
@@ -449,6 +331,15 @@ async def validate_dataset(dataset_id: str):
         for col in CANONICAL_COLUMNS
     }
     duplicate_count  = int(sum(1 for cid in cid_series if cid in dup_cids))
+
+    # Build sample of invalid records for the frontend drill-down (max 50)
+    sample_invalid = []
+    for rec in quarantine_records[:50]:
+        sample_invalid.append({
+            "row":    {col: rec.get(col, "") for col in CANONICAL_COLUMNS},
+            "errors": rec["_validation_errors"],
+            "reason": rec["Quarantine_Reason"],
+        })
 
     # ── 5. Persist output files ────────────────────────────────────────────────
     tmp_dir = tempfile.mkdtemp()
@@ -480,19 +371,20 @@ async def validate_dataset(dataset_id: str):
     if old_tmp and os.path.exists(old_tmp) and old_tmp != tmp_dir:
         shutil.rmtree(old_tmp, ignore_errors=True)
 
-    # ── 6. Update store ────────────────────────────────────────────────────────
     entry["tmp_dir"]  = tmp_dir
-    entry["validation_result"] = {
-        "total_rows":      total_rows,
-        "clean_count":     clean_count,
+    result = {
+        "total_rows":       total_rows,
+        "clean_count":      clean_count,
         "quarantine_count": quarantine_count,
-        "quality_score":   quality_score,
-        "duplicate_count": duplicate_count,
-        "error_summary":   dict(error_frequency),
-        "column_quality":  column_quality,
+        "quality_score":    quality_score,
+        "quality_formula":  f"{clean_count} / {total_rows} x 100 = {quality_score}%",
+        "duplicate_count":  duplicate_count,
+        "error_summary":    dict(error_frequency),
+        "column_quality":   column_quality,
+        "sample_invalid":   sample_invalid,
     }
-
-    return JSONResponse(entry["validation_result"])
+    entry["validation_result"] = result
+    return JSONResponse(result)
 
 
 # ---------------------------------------------------------------------------
@@ -534,21 +426,61 @@ async def download_quarantine(dataset_id: str):
 
 
 # ---------------------------------------------------------------------------
+# Debug endpoints - Deliberate Red/Green demonstration for assessment
+# ---------------------------------------------------------------------------
+
+@app.post("/api/debug/inject-bug")
+async def inject_bug():
+    """DELIBERATE BUG: Changes age minimum from 18 to 25.
+    Rows with age 18-24 will now fail - demonstrating the Red run."""
+    changed = []
+    for rule in _rules:
+        if rule.id == "age_range" and hasattr(rule, "min_val"):
+            rule.min_val = 25  # BUG: was 18
+            changed.append(rule.id)
+    return JSONResponse({
+        "status":        "bug_injected",
+        "change":        "age_range min raised from 18 to 25",
+        "changed_rules": changed,
+        "warning":       "Tests will now FAIL for rows with age 18-24",
+    })
+
+
+@app.post("/api/debug/fix-bug")
+async def fix_bug():
+    """Restores age minimum to the correct value (18). Green run."""
+    changed = []
+    for rule in _rules:
+        if rule.id == "age_range" and hasattr(rule, "min_val"):
+            rule.min_val = 18  # FIX: restore correct minimum
+            changed.append(rule.id)
+    return JSONResponse({
+        "status":        "bug_fixed",
+        "change":        "age_range min restored to 18",
+        "changed_rules": changed,
+    })
+
+
+@app.get("/api/debug/status")
+async def debug_status():
+    """Returns current state of mutable rules for test verification."""
+    rule_state = {}
+    for r in _rules:
+        if hasattr(r, "min_val") and r.id == "age_range":
+            rule_state[r.id] = {"min_val": r.min_val, "max_val": r.max_val}
+        if hasattr(r, "min_age") and r.id == "chennai_age_rule":
+            rule_state[r.id] = {"min_age": r.min_age}
+    return JSONResponse({"rules": rule_state})
+
+
+# ---------------------------------------------------------------------------
 # Health check
 # ---------------------------------------------------------------------------
 
 @app.get("/")
 async def root():
-    return {
-        "status":  "ok",
-        "service": "DataSentry v2 API",
-        "version": "2.0.0",
-    }
+    return {"status": "ok", "service": "DataSentry v2 API", "version": "2.0.0"}
 
-
-# ---------------------------------------------------------------------------
-# Entry-point (local dev)
-# ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
     import uvicorn

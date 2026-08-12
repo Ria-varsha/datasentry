@@ -1,0 +1,11 @@
+customer_id,full_name,email,phone_number,age,city,signup_date
+100001,Arun Kumar,arun.kumar@gmail.com,9876543210,28,Bangalore,15-03-2024
+100002,Priya Sharma,priya.sharma@yahoo.com,8765432109,35,Chennai,22-06-2023
+100003,Rahul Mehta,rahul.mehta@outlook.com,7654321098,42,Mumbai,01-01-2024
+100004,Sneha Reddy,sneha.reddy@gmail.com,9543210987,31,Hyderabad,11-11-2023
+100005,Vikram Nair,vikram.nair@gmail.com,9432109876,45,Delhi,30-04-2022
+100006,Deepa Singh,deepa-not-valid,9321098765,26,Pune,07-09-2023
+100007,Rohan Joshi,rohan.j@gmail.com,9210987654,16,Kolkata,14-02-2024
+100008,Kavya Pillai,kavya.p@gmail.com,9109876543,25,Chennai,03-08-2023
+100001,Arun Kumar,arun.kumar@gmail.com,9876543210,28,Bangalore,15-03-2024
+100009,Megha Tiwari,megha.t@gmail.com,8998776655,29,Jaipur,19-05-2023
